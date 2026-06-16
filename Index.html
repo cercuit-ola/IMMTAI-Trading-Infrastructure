@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMMT AI — Trading Intelligence as a Service</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:   #080808;
+    --off:     #111111;
+    --card:    #161616;
+    --border:  #222222;
+    --muted:   #555555;
+    --soft:    #888888;
+    --white:   #f4f4f0;
+    --green:   #00e676;
+    --green2:  #00c853;
+    --amber:   #ffc107;
+    --red:     #ff3d3d;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; width: 100%; z-index: 100;
+    background: rgba(8,8,8,0.97);
+    border-bottom: 1px solid var(--border);
+    padding: 1.1rem 2.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .logo {
+    font-size: 13px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--white); font-weight: 700;
+  }
+  .logo span { color: var(--green); }
+  .nav-links { display: flex; gap: 2.5rem; align-items: center; }
+  .nav-links a {
+    color: var(--soft); text-decoration: none; font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase; transition: color .2s;
+  }
+  .nav-links a:hover { color: var(--green); }
+  .nav-btn {
+    border: 1px solid var(--green); color: var(--green);
+    padding: .5rem 1.2rem; font-size: 11px; letter-spacing: 2px;
+    text-transform: uppercase; text-decoration: none; transition: all .2s;
+    font-family: inherit;
+  }
+  .nav-btn:hover { background: var(--green); color: var(--black); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 0 2.5rem 5rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* grid background */
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,230,118,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,230,118,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  /* scanning line */
+  .scan {
+    position: absolute; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+    opacity: 0.3;
+    animation: scan 6s linear infinite;
+  }
+  @keyframes scan { from { top: 80px; } to { top: 100%; } }
+
+  .hero-eyebrow {
+    font-size: 10px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--green); margin-bottom: 1.5rem;
+  }
+  .hero h1 {
+    font-size: clamp(2.8rem, 6vw, 5.5rem);
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -1px;
+    max-width: 900px;
+    margin-bottom: 2rem;
+  }
+  .hero h1 em { color: var(--green); font-style: normal; }
+  .hero-sub {
+    font-size: 14px; color: var(--soft); max-width: 600px;
+    margin-bottom: 2.5rem; line-height: 1.8;
+  }
+  .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .btn-green {
+    background: var(--green); color: var(--black);
+    padding: .75rem 1.8rem; font-family: inherit;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    text-decoration: none; font-weight: 700; transition: opacity .2s;
+    border: none; cursor: pointer;
+  }
+  .btn-green:hover { opacity: .85; }
+  .btn-outline {
+    border: 1px solid var(--border); color: var(--soft);
+    padding: .75rem 1.8rem; font-family: inherit;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    text-decoration: none; transition: all .2s;
+  }
+  .btn-outline:hover { border-color: var(--soft); color: var(--white); }
+
+  /* live ticker */
+  .ticker {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--off); border-top: 1px solid var(--border);
+    padding: .7rem 0; overflow: hidden;
+  }
+  .ticker-inner {
+    display: flex; gap: 4rem;
+    animation: ticker 30s linear infinite;
+    white-space: nowrap;
+  }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .tick-item { font-size: 11px; letter-spacing: 1px; color: var(--soft); display: flex; gap: .7rem; }
+  .tick-item .up { color: var(--green); }
+  .tick-item .dn { color: var(--red); }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-cell {
+    padding: 2.5rem; border-right: 1px solid var(--border);
+  }
+  .stat-cell:last-child { border-right: none; }
+  .stat-n {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700; color: var(--green);
+    letter-spacing: -2px; line-height: 1;
+    margin-bottom: .4rem;
+  }
+  .stat-l { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+
+  /* ── SECTIONS ── */
+  .section { padding: 6rem 2.5rem; border-bottom: 1px solid var(--border); }
+  .section-label {
+    font-size: 10px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--green); margin-bottom: 1rem;
+  }
+  .section-title {
+    font-size: clamp(1.6rem, 3vw, 2.5rem);
+    font-weight: 700; line-height: 1.15;
+    max-width: 700px; margin-bottom: 1.5rem;
+  }
+  .section-title em { color: var(--green); font-style: normal; }
+  .section-body { color: var(--soft); max-width: 620px; line-height: 1.9; margin-bottom: 3rem; }
+
+  /* ── WHAT IS IMMT ── */
+  .what-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
+  .what-block h3 { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--green); margin-bottom: 1.2rem; }
+  .what-block p { color: var(--soft); line-height: 1.9; font-size: 14px; margin-bottom: 1rem; }
+  .what-block strong { color: var(--white); }
+
+  /* ── ARCHITECTURE PIPELINE ── */
+  .pipe { display: flex; flex-direction: column; gap: 0; }
+  .pipe-step {
+    display: grid; grid-template-columns: 80px 1fr;
+    gap: 2rem; padding: 1.8rem 0;
+    border-top: 1px solid var(--border);
+    align-items: start;
+  }
+  .pipe-step:last-child { border-bottom: 1px solid var(--border); }
+  .pipe-num {
+    font-size: 10px; letter-spacing: 2px; color: var(--muted);
+    text-transform: uppercase; padding-top: 2px;
+  }
+  .pipe-step h4 { font-size: 13px; font-weight: 700; margin-bottom: .5rem; color: var(--white); }
+  .pipe-step p { font-size: 13px; color: var(--soft); line-height: 1.8; }
+  .pipe-step .tag {
+    display: inline-block; font-size: 9px; letter-spacing: 2px;
+    text-transform: uppercase; border: 1px solid var(--green);
+    color: var(--green); padding: 2px 8px; margin-bottom: .6rem;
+  }
+
+  /* ── MARKETS ── */
+  .markets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); }
+  .market-card {
+    background: var(--card); padding: 2.5rem;
+  }
+  .market-card .badge {
+    display: inline-block; font-size: 9px; letter-spacing: 2px;
+    padding: 3px 10px; text-transform: uppercase; margin-bottom: 1.2rem;
+  }
+  .badge-live { background: var(--green); color: var(--black); }
+  .badge-new  { background: var(--amber); color: var(--black); }
+  .badge-soon { border: 1px solid var(--muted); color: var(--muted); }
+  .market-card h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: .5rem; }
+  .market-card p  { font-size: 13px; color: var(--soft); line-height: 1.8; }
+
+  /* ── BUSINESS MODEL ── */
+  .model-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--border); }
+  .model-card { background: var(--card); padding: 2.5rem; }
+  .model-card .num {
+    font-size: 10px; letter-spacing: 3px; color: var(--green);
+    text-transform: uppercase; margin-bottom: 1rem;
+  }
+  .model-card h3 { font-size: 16px; font-weight: 700; margin-bottom: .7rem; }
+  .model-card p  { font-size: 13px; color: var(--soft); line-height: 1.8; }
+  .model-card .price {
+    font-size: 1.8rem; font-weight: 700; color: var(--green);
+    margin-top: 1rem; letter-spacing: -1px;
+  }
+  .model-card .price span { font-size: 12px; color: var(--muted); }
+
+  /* ── RISK ── */
+  .risk-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+  .risk-item { padding: 2rem; border: 1px solid var(--border); }
+  .risk-item h4 { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--amber); margin-bottom: .7rem; }
+  .risk-item p  { font-size: 13px; color: var(--soft); line-height: 1.8; }
+  .risk-val { font-size: 2rem; font-weight: 700; color: var(--white); margin-bottom: .3rem; letter-spacing: -1px; }
+
+  /* ── ROADMAP ── */
+  .roadmap { display: flex; flex-direction: column; gap: 0; }
+  .road-item {
+    display: grid; grid-template-columns: 140px 1fr;
+    gap: 2rem; padding: 1.8rem 0;
+    border-top: 1px solid var(--border); align-items: start;
+  }
+  .road-item:last-child { border-bottom: 1px solid var(--border); }
+  .road-phase { font-size: 11px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; padding-top: 3px; }
+  .road-item h4 { font-size: 14px; font-weight: 700; margin-bottom: .4rem; }
+  .road-item p  { font-size: 13px; color: var(--soft); }
+  .road-active h4 { color: var(--green); }
+  .road-active .road-phase { color: var(--green); }
+
+  /* ── CTA ── */
+  .cta-section {
+    padding: 6rem 2.5rem; text-align: center;
+  }
+  .cta-section h2 {
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 700; margin-bottom: 1rem; line-height: 1.1;
+  }
+  .cta-section h2 em { color: var(--green); font-style: normal; }
+  .cta-section p { color: var(--soft); margin-bottom: 2.5rem; font-size: 14px; }
+  .cta-links { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 2rem 2.5rem;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 1rem;
+  }
+  footer p { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+  .footer-links { display: flex; gap: 2rem; }
+  .footer-links a { font-size: 11px; color: var(--muted); text-decoration: none; letter-spacing: 1px; transition: color .2s; }
+  .footer-links a:hover { color: var(--green); }
+
+  /* ── BLINK CURSOR ── */
+  .cursor::after {
+    content: '▋'; animation: blink 1s step-end infinite; color: var(--green);
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .stats-bar, .what-grid, .markets-grid, .model-grid, .risk-grid { grid-template-columns: 1fr; }
+    .stat-cell { border-right: none; border-bottom: 1px solid var(--border); }
+    .pipe-step { grid-template-columns: 50px 1fr; }
+    .road-item { grid-template-columns: 1fr; gap: .5rem; }
+    .hero h1 { font-size: 2.4rem; }
+    nav { padding: 1rem 1.2rem; }
+    .nav-links { gap: 1.2rem; }
+    .section { padding: 4rem 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">IMMT <span>AI</span></div>
+  <div class="nav-links">
+    <a href="#what">What</a>
+    <a href="#markets">Markets</a>
+    <a href="#model">Model</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="https://www.youtube.com/@terafarm9093/streams" class="nav-btn" target="_blank">Watch Live</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="scan"></div>
+  <p class="hero-eyebrow">Trading Intelligence as a Service — Now Global</p>
+  <h1>Autonomous LSTM agents.<br><em>Institutional discipline.</em><br>Any market. 24/7.</h1>
+  <p class="hero-sub">IMMT AI deploys self-improving LSTM trading agents across crypto derivatives and Nasdaq futures. Capital preservation first. Compounding always. Emotion never. Rent our models or let us run them for you.</p>
+  <div class="hero-actions">
+    <a href="https://www.youtube.com/@terafarm9093/streams" class="btn-green" target="_blank">Watch Agents Trade Live</a>
+    <a href="https://immtofficial.gitbook.io/immt-docs-or-en/" class="btn-outline" target="_blank">Read Documentation</a>
+    <a href="https://t.me/IMMT_group" class="btn-outline" target="_blank">Join Community</a>
+  </div>
+
+  <!-- ticker -->
+  <div class="ticker">
+    <div class="ticker-inner">
+      <span class="tick-item">ETH/USDT <span class="up">▲ +1.2%</span></span>
+      <span class="tick-item">BTC/USDT <span class="up">▲ +0.8%</span></span>
+      <span class="tick-item">NASDAQ <span class="up">▲ +0.4%</span></span>
+      <span class="tick-item">AGENTS ACTIVE <span class="up">100</span></span>
+      <span class="tick-item">DRAWDOWN <span class="up">0%</span></span>
+      <span class="tick-item">CUMULATIVE PnL <span class="up">+$27K</span></span>
+      <span class="tick-item">ETH/USDT <span class="up">▲ +1.2%</span></span>
+      <span class="tick-item">BTC/USDT <span class="up">▲ +0.8%</span></span>
+      <span class="tick-item">NASDAQ <span class="up">▲ +0.4%</span></span>
+      <span class="tick-item">AGENTS ACTIVE <span class="up">100</span></span>
+      <span class="tick-item">DRAWDOWN <span class="up">0%</span></span>
+      <span class="tick-item">CUMULATIVE PnL <span class="up">+$27K</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat-cell">
+    <div class="stat-n">100</div>
+    <div class="stat-l">Live agents running</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-n">$27K</div>
+    <div class="stat-l">Cumulative profit (8 weeks)</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-n">0</div>
+    <div class="stat-l">Liquidations. Ever.</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-n">2</div>
+    <div class="stat-l">Markets. More coming.</div>
+  </div>
+</div>
+
+<!-- WHAT IS IMMT -->
+<section class="section" id="what">
+  <p class="section-label">What is IMMT AI</p>
+  <h2 class="section-title">Not a trading bot. <em>Trading intelligence infrastructure.</em></h2>
+  <p class="section-body">IMMT AI is a Trading Intelligence as a Service platform. We build, operate, and rent autonomous LSTM agents that execute disciplined trading strategies across crypto and traditional financial markets. Your capital never leaves your account. Our models never stop learning.</p>
+  <div class="what-grid">
+    <div class="what-block">
+      <h3>The product</h3>
+      <p>100 autonomous LSTM agents trained on years of real market data. Each agent runs a continuous <strong>Plan → Act → Observe → Learn</strong> loop. Three simultaneous strategies: scalping on 4H, market making on 1H, liquidity provision on 15M. All with hardcoded risk management that cannot be overridden.</p>
+      <p>Your capital stays in your exchange account. We operate on <strong>restricted API access only</strong>. We can trade. We cannot withdraw. That is non-custodial by design.</p>
+    </div>
+    <div class="what-block">
+      <h3>The business</h3>
+      <p>IMMT operates on a <strong>Trading Intelligence as a Service</strong> model. Retail traders rent our agents at $50/month + 20% performance fee. Institutions and market makers license our LSTM infrastructure via white-label API to deploy inside their own systems.</p>
+      <p>We are not a wealth manager. Not a signal group. Not a fund. We are <strong>infrastructure</strong> — the rails that others trade on. Scalable, defensible, market-agnostic.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section class="section" id="architecture">
+  <p class="section-label">How it works</p>
+  <h2 class="section-title">The LSTM <em>intelligence pipeline.</em></h2>
+  <p class="section-body">Every agent processes three real-time data streams, passes through a confidence gate, executes under strict risk controls, and retrains on every live outcome. A continuous loop that never stops.</p>
+  <div class="pipe">
+    <div class="pipe-step">
+      <div class="pipe-num">01 — Input</div>
+      <div>
+        <div class="tag">Data Layer</div>
+        <h4>Three simultaneous market signals</h4>
+        <p>Real-time price action and OHLCV data. Order flow and order book depth. On-chain and news sentiment signals. All three feed the LSTM simultaneously, giving the model a complete picture of market state before a decision is made.</p>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">02 — Process</div>
+      <div>
+        <div class="tag">Model Layer</div>
+        <h4>LSTM sequence model + LLM support</h4>
+        <p>Long Short-Term Memory networks trained on 2+ years of real market data. Pattern recognition across all timeframes simultaneously. An LLM support layer for context interpretation. Confidence threshold gate: a trade only executes when the model is confident enough to act.</p>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">03 — Deploy</div>
+      <div>
+        <div class="tag">Agent Layer</div>
+        <h4>100 independent agents, same intelligence</h4>
+        <p>100 agents deploy simultaneously, each operating independently. Non-correlated execution. If one agent is in a position, others are not forced into the same trade. Diversification at the infrastructure level, not the portfolio level.</p>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">04 — Protect</div>
+      <div>
+        <div class="tag">Risk Layer</div>
+        <h4>Hardcoded limits. No exceptions.</h4>
+        <p>0.5% max position risk per trade. 3x maximum leverage. 5% daily drawdown cap triggers automatic pause. Stop-loss execution is automatic and cannot be overridden. Liquidation prevention is architecture, not policy. These rules are not guidelines — they are physics.</p>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">05 — Learn</div>
+      <div>
+        <div class="tag">Feedback Layer</div>
+        <h4>Every trade improves the next signal</h4>
+        <p>Trade outcomes are logged and fed back into the LSTM. The model retrains continuously on live results. Over time, agents become more accurate, more calibrated, more profitable. The intelligence compounds alongside the capital.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARKETS -->
+<section class="section" id="markets">
+  <p class="section-label">Markets</p>
+  <h2 class="section-title">Built for any market. <em>Deployed globally.</em></h2>
+  <p class="section-body">IMMT started in crypto derivatives. It was always designed for more. The same LSTM infrastructure that trades ETH/USDT now trades Nasdaq futures. The model is market-agnostic. The discipline is universal.</p>
+  <div class="markets-grid">
+    <div class="market-card">
+      <span class="badge badge-live">Live</span>
+      <h3>ETH / USDT</h3>
+      <p>Original market. 100 agents. 47 consecutive profitable days. $27K cumulative profit. The proof of concept that validated everything. Scalping, market making, and liquidity provision running simultaneously 24/7.</p>
+    </div>
+    <div class="market-card">
+      <span class="badge badge-live">Live</span>
+      <h3>BTC / USDT</h3>
+      <p>Bitcoin's higher daily volatility creates more scalping opportunities for LSTM agents. Retrained on Bitcoin's unique market microstructure. Agents now execute simultaneously across both crypto pairs for true portfolio diversification.</p>
+    </div>
+    <div class="market-card">
+      <span class="badge badge-new">New</span>
+      <h3>Nasdaq Futures</h3>
+      <p>Institutional-grade market depth. Higher daily liquidity than crypto. Lower manipulation risk. Regulatory clarity. IMMT's LSTM models are being retrained for Nasdaq's market regime. YouTube livestream relaunching on Nasdaq execution within one week.</p>
+    </div>
+  </div>
+</section>
+
+<!-- BUSINESS MODEL -->
+<section class="section" id="model">
+  <p class="section-label">Business Model</p>
+  <h2 class="section-title">Trading intelligence <em>rented at scale.</em></h2>
+  <p class="section-body">Two revenue streams. One for retail. One for institutions. Both built on the same LSTM infrastructure. The model scales without linear cost increases.</p>
+  <div class="model-grid">
+    <div class="model-card">
+      <div class="num">Stream 01 — Retail</div>
+      <h3>Agent Rental</h3>
+      <p>Retail traders deploy autonomous agents to their own exchange accounts. Capital stays with the trader. IMMT takes a deployment fee and performance fee on profits. Aligned incentives: IMMT only earns when the trader earns.</p>
+      <div class="price">$50 <span>/ agent / month + 20% performance</span></div>
+    </div>
+    <div class="model-card">
+      <div class="num">Stream 02 — Institutional</div>
+      <h3>White-Label LSTM API</h3>
+      <p>Hedge funds, exchanges, and market making firms license IMMT's LSTM infrastructure directly. They deploy it inside their own systems under their own brand. IMMT provides the intelligence. They provide the capital and distribution.</p>
+      <div class="price">API <span>/ custom enterprise licensing</span></div>
+    </div>
+    <div class="model-card">
+      <div class="num">Stream 03 — Platform</div>
+      <h3>Liquidity Pool</h3>
+      <p>Investors contribute capital to the agent pool. IMMT deploys agents on their behalf. Returns distributed proportionally. A managed product for those who want exposure without managing agent deployment themselves.</p>
+      <div class="price">Pool <span>/ proportional returns</span></div>
+    </div>
+    <div class="model-card">
+      <div class="num">Stream 04 — Ecosystem</div>
+      <h3>$IMMT Token + Marketplace</h3>
+      <p>Token utility tied to platform usage: execution fees, governance, staking. Future marketplace where traders buy, sell, and clone agent strategies. Network effects compound value as the ecosystem grows.</p>
+      <div class="price">$IMMT <span>/ governance + utility token</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- RISK -->
+<section class="section" id="risk">
+  <p class="section-label">Risk Management</p>
+  <h2 class="section-title">Hardcoded discipline. <em>No exceptions.</em></h2>
+  <p class="section-body">Risk management is not a policy at IMMT. It is architecture. These parameters are enforced at the infrastructure level. No human can override them. No emotion can break them.</p>
+  <div class="risk-grid">
+    <div class="risk-item">
+      <div class="risk-val">0.5%</div>
+      <h4>Max risk per trade</h4>
+      <p>Every trade is sized so that a full loss equals 0.5% of account value. Across 10 simultaneous positions, maximum exposure is 5%. This is hardcoded. Non-negotiable.</p>
+    </div>
+    <div class="risk-item">
+      <div class="risk-val">3x</div>
+      <h4>Maximum leverage</h4>
+      <p>Agents will not use more than 3x leverage regardless of signal confidence. This single constraint eliminates the majority of retail liquidation events.</p>
+    </div>
+    <div class="risk-item">
+      <div class="risk-val">5%</div>
+      <h4>Daily drawdown cap</h4>
+      <p>If daily drawdown reaches 5%, agents pause aggressive execution and shift to capital preservation mode. Trading resumes when drawdown reduces to 2%.</p>
+    </div>
+    <div class="risk-item">
+      <div class="risk-val">Auto</div>
+      <h4>Stop-loss execution</h4>
+      <p>Every position carries a predefined stop-loss that executes automatically. No "holding and hoping." No emotional override. If price hits the level, the agent exits.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="section" id="roadmap">
+  <p class="section-label">Roadmap</p>
+  <h2 class="section-title">From proof of concept <em>to global infrastructure.</em></h2>
+  <div class="roadmap">
+    <div class="road-item road-active">
+      <div class="road-phase">Now — Q2 2026</div>
+      <div>
+        <h4>Multi-Market Execution</h4>
+        <p>ETH/USDT and BTC/USDT live. Nasdaq LSTM retraining underway. YouTube livestream relaunching on Nasdaq within one week. $27K cumulative profit. Zero liquidations.</p>
+      </div>
+    </div>
+    <div class="road-item">
+      <div class="road-phase">Q3 2026</div>
+      <div>
+        <h4>Altcoin Expansion + Cross-Pair Optimization</h4>
+        <p>SOL/USDT, POLY/USDT agents deployed. Cross-pair portfolio optimization: agents coordinate positions across correlated pairs for true institutional-grade diversification.</p>
+      </div>
+    </div>
+    <div class="road-item">
+      <div class="road-phase">Q4 2026</div>
+      <div>
+        <h4>Institutional White-Label API</h4>
+        <p>Exchanges, brokers, and hedge funds license IMMT's LSTM infrastructure. IMMT becomes the intelligence layer powering third-party platforms. Revenue model scales without linear cost increase.</p>
+      </div>
+    </div>
+    <div class="road-item">
+      <div class="road-phase">Q1 2027</div>
+      <div>
+        <h4>AI Agent Marketplace</h4>
+        <p>Traders buy, sell, and clone agent strategies. Agents become tradable assets. Network effects emerge. The value of the ecosystem grows with every participant.</p>
+      </div>
+    </div>
+    <div class="road-item">
+      <div class="road-phase">2027+</div>
+      <div>
+        <h4>Global Trading Infrastructure</h4>
+        <p>IMMT powers trading intelligence across crypto, equities, commodities, and forex. Market-agnostic LSTM models. Millions of agents running. Institutional and retail capital on the same infrastructure.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>The agent is running.<br><em>The only thing missing is you.</em></h2>
+  <p>Watch 100 autonomous LSTM agents trade live. Deploy your own. Or license our infrastructure for your institution.</p>
+  <div class="cta-links">
+    <a href="https://www.youtube.com/@terafarm9093/streams" class="btn-green" target="_blank">Watch Live Trading</a>
+    <a href="https://t.me/IMMT_group" class="btn-outline" target="_blank">Join Telegram</a>
+    <a href="https://immtofficial.gitbook.io/immt-docs-or-en/" class="btn-outline" target="_blank">Documentation</a>
+    <a href="https://immt.io" class="btn-outline" target="_blank">immt.io</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2026 Terafarm Corporation · Seoul, Korea · <span style="color:var(--green)">immt.io</span></p>
+  <div class="footer-links">
+    <a href="https://x.com/IMMT_io" target="_blank">X / Twitter</a>
+    <a href="https://t.me/IMMT_group" target="_blank">Telegram</a>
+    <a href="https://discord.gg/AkVxDnV9" target="_blank">Discord</a>
+    <a href="https://immtofficial.gitbook.io/immt-docs-or-en/" target="_blank">Docs</a>
+  </div>
+  <p style="color:var(--muted);font-size:10px;width:100%;margin-top:.5rem">Futures trading involves substantial risk of loss. This is not financial advice. Past performance does not guarantee future results.</p>
+</footer>
+
+</body>
+</html>
